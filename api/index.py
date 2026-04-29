@@ -54,10 +54,6 @@ def index():
     ticker = request.args.get('queryStockPrice')
     if ticker is not None:
         try:
-            url = (
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-                "?interval=1d&range=1d"
-            )
             headers = {
                 'User-Agent': (
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -65,10 +61,17 @@ def index():
                     'Chrome/120.0.0.0 Safari/537.36'
                 )
             }
+            url = (
+                f"https://query1.finance.yahoo.com/v7/finance/quote"
+                f"?symbols={ticker}&fields=regularMarketPrice"
+            )
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            price = data['chart']['result'][0]['meta']['regularMarketPrice']
+            result = data['quoteResponse']['result']
+            if not result:
+                return jsonify({"error": f"Ticker not found: {ticker}"}), 404
+            price = result[0]['regularMarketPrice']
             return jsonify(to_number(price))
         except Exception as e:
             return jsonify({"error": str(e)}), 400
