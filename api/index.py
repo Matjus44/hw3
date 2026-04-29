@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import ast
 import operator
+import os
 import requests
 
 app = Flask(__name__)
@@ -54,25 +55,19 @@ def index():
     ticker = request.args.get('queryStockPrice')
     if ticker is not None:
         try:
-            headers = {
-                'User-Agent': (
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/120.0.0.0 Safari/537.36'
-                )
-            }
+            api_key = os.environ.get('ALPHA_VANTAGE_KEY')
             url = (
-                f"https://query1.finance.yahoo.com/v7/finance/quote"
-                f"?symbols={ticker}&fields=regularMarketPrice"
+                f"https://www.alphavantage.co/query"
+                f"?function=GLOBAL_QUOTE&symbol={ticker}&apikey={api_key}"
             )
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = requests.get(url, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            result = data['quoteResponse']['result']
-            if not result:
+            quote = data.get('Global Quote', {})
+            price = quote.get('05. price')
+            if not price:
                 return jsonify({"error": f"Ticker not found: {ticker}"}), 404
-            price = result[0]['regularMarketPrice']
-            return jsonify(to_number(price))
+            return jsonify(to_number(float(price)))
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
