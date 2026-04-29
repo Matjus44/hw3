@@ -55,19 +55,18 @@ def index():
     ticker = request.args.get('queryStockPrice')
     if ticker is not None:
         try:
-            api_key = os.environ.get('ALPHA_VANTAGE_KEY')
-            url = (
-                f"https://www.alphavantage.co/query"
-                f"?function=GLOBAL_QUOTE&symbol={ticker}&apikey={api_key}"
+            api_key = os.environ.get('FINNHUB_KEY')
+            resp = requests.get(
+                "https://finnhub.io/api/v1/quote",
+                params={'symbol': ticker, 'token': api_key},
+                timeout=10,
             )
-            resp = requests.get(url, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            quote = data.get('Global Quote', {})
-            price = quote.get('05. price')
+            price = data.get('c')
             if not price:
                 return jsonify({"error": f"Ticker not found: {ticker}"}), 404
-            return jsonify(to_number(float(price)))
+            return jsonify(to_number(price))
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
