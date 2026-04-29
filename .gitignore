@@ -5,3 +5,5 @@ __pycache__/
 .venv
 venv/
 .vercel
+id_muni
+id_muni.pub
