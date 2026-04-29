@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import ast
 import operator
 import requests
@@ -32,11 +32,11 @@ def safe_eval(expr):
     return _eval(tree.body)
 
 
-def format_number(value):
-    """Return int string if whole number, otherwise float string."""
+def to_number(value):
+    """Return int if whole number, otherwise float."""
     if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
+        return int(value)
+    return value
 
 
 @app.route('/')
@@ -46,9 +46,9 @@ def index():
     if expr is not None:
         try:
             result = safe_eval(expr)
-            return format_number(result)
+            return jsonify(to_number(result))
         except Exception as e:
-            return f"Error evaluating expression: {e}", 400
+            return jsonify({"error": str(e)}), 400
 
     # --- queryStockPrice ---
     ticker = request.args.get('queryStockPrice')
@@ -69,9 +69,9 @@ def index():
             resp.raise_for_status()
             data = resp.json()
             price = data['chart']['result'][0]['meta']['regularMarketPrice']
-            return format_number(price)
+            return jsonify(to_number(price))
         except Exception as e:
-            return f"Error fetching stock price: {e}", 400
+            return jsonify({"error": str(e)}), 400
 
     # --- queryAirportTemp ---
     iata = request.args.get('queryAirportTemp')
@@ -85,7 +85,7 @@ def index():
             airport_resp.raise_for_status()
             airport = airport_resp.json()
             if airport.get('status') == 404 or 'latitude' not in airport:
-                return f"Airport not found: {iata}", 404
+                return jsonify({"error": f"Airport not found: {iata}"}), 404
             lat = airport['latitude']
             lon = airport['longitude']
 
@@ -102,13 +102,8 @@ def index():
             weather_resp.raise_for_status()
             weather = weather_resp.json()
             temp = weather['current_weather']['temperature']
-            return format_number(temp)
+            return jsonify(to_number(temp))
         except Exception as e:
-            return f"Error fetching airport temperature: {e}", 400
+            return jsonify({"error": str(e)}), 400
 
-    return (
-        "Usage:\n"
-        "  /?queryEval=10+(5*2)\n"
-        "  /?queryStockPrice=AAPL\n"
-        "  /?queryAirportTemp=PRG\n"
-    )
+    return jsonify({"usage": "Use queryEval, queryStockPrice, or queryAirportTemp parameters."})
