@@ -63,8 +63,8 @@ def index():
             )
             resp.raise_for_status()
             data = resp.json()
-            price = data.get('c')
-            if not price:
+            price = data.get('c') or data.get('pc')
+            if price is None:
                 return jsonify({"error": f"Ticker not found: {ticker}"}), 404
             return jsonify(to_number(price))
         except Exception as e:
